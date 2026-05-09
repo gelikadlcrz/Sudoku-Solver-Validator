@@ -1,6 +1,10 @@
 # Puzzles with illegal initial states
-226
-351
-553
-764
-877
+6
+17
+18
+20
+24
+36
+40
+44
+48
