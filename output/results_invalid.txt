@@ -1,1 +1,6 @@
 # Puzzles with illegal initial states
+226
+351
+553
+764
+877

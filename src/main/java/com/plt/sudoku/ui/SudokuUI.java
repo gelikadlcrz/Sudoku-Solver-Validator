@@ -13,45 +13,36 @@ import javax.swing.border.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.geom.RoundRectangle2D;
 import java.io.File;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Swing UI for the Batch Sudoku Validator & Solver.
- *
- * Layout:
- *   ┌─────────────────────────────────────────────────────┐
- *   │  HEADER — title + subtitle                          │
- *   ├────────────────────┬────────────────────────────────┤
- *   │  LEFT PANEL        │  RIGHT PANEL                   │
- *   │  • Config card     │  • Metric cards (4)            │
- *   │  • Puzzle preview  │  • Speedup / efficiency bars   │
- *   │  • Run button      │  • Results table               │
- *   ├────────────────────┴────────────────────────────────┤
- *   │  LOG PANEL — scrollable console output              │
- *   └─────────────────────────────────────────────────────┘
  */
 public final class SudokuUI {
 
-    // ── Palette ──────────────────────────────────────────────────────────
-    private static final Color BG          = new Color(0xF7F6F3);
-    private static final Color SURFACE     = Color.WHITE;
-    private static final Color BORDER_CLR  = new Color(0xE0DDD5);
-    private static final Color ACCENT      = new Color(0x3C3489);   // purple-800
-    private static final Color ACCENT_LITE = new Color(0xEEEDFE);   // purple-50
-    private static final Color TEXT_PRI    = new Color(0x1C1B18);
-    private static final Color TEXT_SEC    = new Color(0x5F5E5A);
-    private static final Color GREEN       = new Color(0x3B6D11);
-    private static final Color GREEN_BG    = new Color(0xEAF3DE);
-    private static final Color RED_CLR     = new Color(0xA32D2D);
-    private static final Color RED_BG      = new Color(0xFCEBEB);
-    private static final Color AMBER       = new Color(0x854F0B);
-    private static final Color AMBER_BG    = new Color(0xFAEEDA);
-    private static final Color TEAL        = new Color(0x0F6E56);
-    private static final Color TEAL_BG     = new Color(0xE1F5EE);
+    // ── Palette (Adjust these to perfectly match your screenshot) ──────────
+    private static final Color BG          = new Color(0xF0F2F5); // App Background
+    private static final Color SURFACE     = Color.WHITE;         // Card Background
+    private static final Color HEADER_BG   = new Color(0x1B4965); // Deep Blue/Teal Header
+    private static final Color BORDER_CLR  = new Color(0xE1E4E8);
+    private static final Color ACCENT      = new Color(0x127393); // Primary Action Color
+    private static final Color ACCENT_HOVER= new Color(0x0E5C76);
+    private static final Color ACCENT_LITE = new Color(0xE8F4F8);
+    private static final Color TEXT_PRI    = new Color(0x102A43); // Dark text
+    private static final Color TEXT_SEC    = new Color(0x627D98); // Muted text
+
+    // Status Colors
+    private static final Color GREEN       = new Color(0x059669);
+    private static final Color GREEN_BG    = new Color(0xECFDF5);
+    private static final Color RED_CLR     = new Color(0xDC2626);
+    private static final Color RED_BG      = new Color(0xFEF2F2);
+    private static final Color AMBER       = new Color(0xD97706);
+    private static final Color AMBER_BG    = new Color(0xFFFBEB);
+    private static final Color BLUE_CLR    = new Color(0x2563EB);
+    private static final Color BLUE_BG     = new Color(0xEFF6FF);
 
     // ── State ─────────────────────────────────────────────────────────────
     private JFrame frame;
@@ -63,20 +54,15 @@ public final class SudokuUI {
     private JButton runButton;
     private JTextArea logArea;
 
-    // Metric labels
     private JLabel totalLbl, solvedLbl, invalidLbl, unsolvableLbl;
     private JLabel seqTimeLbl, parTimeLbl, speedupLbl, efficiencyLbl;
     private JProgressBar speedupBar, efficiencyBar;
 
-    // Table
     private DefaultTableModel tableModel;
     private JTable resultsTable;
-
-    // Puzzle preview
     private SudokuGridPanel previewPanel;
 
     // ── Entry ─────────────────────────────────────────────────────────────
-
     public static void launch() {
         try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
         catch (Exception ignored) {}
@@ -84,9 +70,9 @@ public final class SudokuUI {
     }
 
     private void show() {
-        frame = new JFrame("Batch Sudoku Validator & Solver — PLT-Parallel Bridge Matrix");
+        frame = new JFrame("Batch Sudoku Validator & Solver");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setMinimumSize(new Dimension(1100, 780));
+        frame.setMinimumSize(new Dimension(1200, 800));
         frame.getContentPane().setBackground(BG);
         frame.setLayout(new BorderLayout(0, 0));
 
@@ -98,42 +84,39 @@ public final class SudokuUI {
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
 
-        // Show a random preview puzzle immediately
         refreshPreview();
-        log("Ready. Configure options and click  Run Batch Solve.");
+        log("Ready. Configure options and click Run Batch Solve.");
     }
 
     // ── Header ────────────────────────────────────────────────────────────
-
     private JPanel buildHeader() {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(ACCENT);
-        p.setBorder(new EmptyBorder(18, 24, 18, 24));
+        p.setBackground(HEADER_BG);
+        p.setBorder(new EmptyBorder(24, 32, 24, 32));
 
         JLabel title = new JLabel("Batch Sudoku Validator & Solver");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        title.setFont(new Font("Segoe UI", Font.BOLD, 24));
         title.setForeground(Color.WHITE);
 
         JLabel sub = new JLabel("PLT-Parallel Bridge Matrix  ·  Java Shared-State Implementation  ·  Task Parallelism");
-        sub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        sub.setForeground(new Color(0xCECBF6)); // purple-100
+        sub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        sub.setForeground(new Color(255, 255, 255, 200));
 
-        JPanel text = new JPanel(new GridLayout(2, 1, 0, 3));
+        JPanel text = new JPanel(new GridLayout(2, 1, 0, 4));
         text.setOpaque(false);
         text.add(title);
         text.add(sub);
         p.add(text, BorderLayout.CENTER);
 
-        // Phase badges
-        JPanel badges = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        JPanel badges = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         badges.setOpaque(false);
-        for (String badge : new String[]{"Phase 1: Task Parallelism", "Phase 2: Shared Heap", "Phase 3: Lock-Free", "Phase 4: BNF"}) {
+        for (String badge : new String[]{"Phase 1: Task", "Phase 2: Heap", "Phase 3: Lock-Free", "Phase 4: BNF"}) {
             JLabel b = new JLabel(badge);
-            b.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-            b.setForeground(new Color(0xCECBF6));
+            b.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            b.setForeground(Color.WHITE);
             b.setBorder(new CompoundBorder(
-                    new LineBorder(new Color(0x534AB7), 1, true),
-                    new EmptyBorder(3, 8, 3, 8)));
+                    new LineBorder(new Color(255, 255, 255, 60), 1, true),
+                    new EmptyBorder(4, 10, 4, 10)));
             badges.add(b);
         }
         p.add(badges, BorderLayout.EAST);
@@ -141,22 +124,23 @@ public final class SudokuUI {
     }
 
     // ── Center split ──────────────────────────────────────────────────────
-
     private JSplitPane buildCenter() {
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, buildLeftPanel(), buildRightPanel());
-        split.setDividerLocation(320);
-        split.setDividerSize(1);
+        JPanel left = buildLeftPanel();
+        JPanel right = buildRightPanel();
+
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, left, right);
+        split.setDividerLocation(340);
+        split.setDividerSize(0);
         split.setBorder(null);
-        split.setBackground(BORDER_CLR);
+        split.setOpaque(false);
         return split;
     }
 
     // ── LEFT PANEL ────────────────────────────────────────────────────────
-
     private JPanel buildLeftPanel() {
-        JPanel p = new JPanel(new BorderLayout(0, 12));
-        p.setBackground(BG);
-        p.setBorder(new EmptyBorder(16, 16, 16, 8));
+        JPanel p = new JPanel(new BorderLayout(0, 16));
+        p.setOpaque(false);
+        p.setBorder(new EmptyBorder(24, 24, 24, 12));
 
         p.add(buildConfigCard(),   BorderLayout.NORTH);
         p.add(buildPreviewCard(),  BorderLayout.CENTER);
@@ -165,89 +149,127 @@ public final class SudokuUI {
     }
 
     private JPanel buildConfigCard() {
-        JPanel card = card("Configuration");
+        RoundedPanel card = new RoundedPanel(16, SURFACE);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // Puzzle count
+        JLabel header = new JLabel("Configuration");
+        header.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        header.setForeground(TEXT_PRI);
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.add(header);
+        card.add(Box.createVerticalStrut(16));
+
         card.add(label("Puzzle count"));
         countSpinner = new JSpinner(new SpinnerNumberModel(1000, 10, 10000, 100));
         styleSpinner(countSpinner);
         card.add(countSpinner);
+        card.add(Box.createVerticalStrut(12));
 
-        // Thread count
         card.add(label("Worker threads"));
         int cores = Runtime.getRuntime().availableProcessors();
         threadSpinner = new JSpinner(new SpinnerNumberModel(cores, 1, cores * 4, 1));
         styleSpinner(threadSpinner);
         card.add(threadSpinner);
+        card.add(Box.createVerticalStrut(16));
 
-        // Sequential baseline
-        seqCheckBox = new JCheckBox("Run sequential baseline (for speedup S = Ts/Tp)", true);
-        seqCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        seqCheckBox.setBackground(SURFACE);
+        seqCheckBox = new JCheckBox("Run sequential baseline", true);
+        seqCheckBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        seqCheckBox.setOpaque(false);
         seqCheckBox.setForeground(TEXT_PRI);
+        seqCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.add(seqCheckBox);
-        card.add(new JLabel(" ")); // spacer
+        card.add(Box.createVerticalStrut(16));
 
-        // File chooser
-        card.add(label("Puzzle file (optional)"));
-        JPanel fileRow = new JPanel(new BorderLayout(6, 0));
+        card.add(label("Custom Puzzle File"));
+        JPanel fileRow = new JPanel(new BorderLayout(8, 0));
         fileRow.setOpaque(false);
+        fileRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         fileLabel = new JLabel("Using generated puzzles");
         fileLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         fileLabel.setForeground(TEXT_SEC);
-        JButton browseBtn = accentButton("Browse...");
-        browseBtn.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+
+        JButton browseBtn = new JButton("Browse");
+        styleSecondaryButton(browseBtn);
         browseBtn.addActionListener(e -> chooseFile());
+
         fileRow.add(fileLabel,  BorderLayout.CENTER);
         fileRow.add(browseBtn,  BorderLayout.EAST);
         card.add(fileRow);
-
-        JButton clearFile = new JButton("Clear file");
-        clearFile.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        clearFile.setForeground(TEXT_SEC);
-        clearFile.setBorderPainted(false);
-        clearFile.setContentAreaFilled(false);
-        clearFile.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        clearFile.addActionListener(e -> { selectedFilePath = null; fileLabel.setText("Using generated puzzles"); refreshPreview(); });
-        card.add(clearFile);
 
         return card;
     }
 
     private JPanel buildPreviewCard() {
-        JPanel card = card("Puzzle preview (sample)");
+        RoundedPanel card = new RoundedPanel(16, SURFACE);
+        card.setLayout(new BorderLayout(0, 12));
+        card.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JLabel title = new JLabel("Preview (Sample)");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        title.setForeground(TEXT_PRI);
+
         previewPanel = new SudokuGridPanel();
-        card.add(previewPanel);
-        JButton refresh = new JButton("Refresh sample");
-        refresh.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        refresh.setForeground(ACCENT);
-        refresh.setBorderPainted(false);
-        refresh.setContentAreaFilled(false);
-        refresh.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        JButton refresh = new JButton("Refresh");
+        styleSecondaryButton(refresh);
         refresh.addActionListener(e -> refreshPreview());
-        card.add(refresh);
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.add(title, BorderLayout.WEST);
+        header.add(refresh, BorderLayout.EAST);
+
+        card.add(header, BorderLayout.NORTH);
+        card.add(previewPanel, BorderLayout.CENTER);
         return card;
     }
 
     private JButton buildRunButton() {
-        runButton = new JButton("▶  Run Batch Solve");
-        runButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        runButton.setBackground(ACCENT);
-        runButton.setForeground(Color.WHITE);
+        // We override paintComponent to force the background color to render
+        // regardless of the operating system's native UI theme.
+        runButton = new JButton("▶ Run Batch Solve") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Change color if hovered or pressed
+                if (!isEnabled()) {
+                    g2.setColor(new Color(0xBCCCDC)); // Disabled grey
+                } else if (getModel().isPressed() || getModel().isRollover()) {
+                    g2.setColor(ACCENT_HOVER);
+                } else {
+                    g2.setColor(ACCENT);
+                }
+
+                // Draw a rounded rectangle for the button background
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+
+                super.paintComponent(g);
+            }
+        };
+
+        runButton.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        runButton.setForeground(Color.WHITE); // Text color
         runButton.setFocusPainted(false);
         runButton.setBorderPainted(false);
+        runButton.setContentAreaFilled(false); // CRITICAL: Stops the OS from painting over our color
+        runButton.setOpaque(false);
         runButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        runButton.setPreferredSize(new Dimension(0, 44));
+        runButton.setPreferredSize(new Dimension(0, 50));
+
         runButton.addActionListener(e -> startSolve());
         return runButton;
     }
 
     // ── RIGHT PANEL ───────────────────────────────────────────────────────
-
     private JPanel buildRightPanel() {
-        JPanel p = new JPanel(new BorderLayout(0, 12));
-        p.setBackground(BG);
-        p.setBorder(new EmptyBorder(16, 8, 16, 16));
+        JPanel p = new JPanel(new BorderLayout(0, 16));
+        p.setOpaque(false);
+        p.setBorder(new EmptyBorder(24, 12, 24, 24));
 
         p.add(buildMetrics(), BorderLayout.NORTH);
         p.add(buildTablePanel(), BorderLayout.CENTER);
@@ -255,41 +277,34 @@ public final class SudokuUI {
     }
 
     private JPanel buildMetrics() {
-        JPanel outer = new JPanel(new BorderLayout(0, 10));
+        JPanel outer = new JPanel(new BorderLayout(0, 16));
         outer.setOpaque(false);
 
-        // 4 count cards
-        JPanel counts = new JPanel(new GridLayout(1, 4, 8, 0));
+        JPanel counts = new JPanel(new GridLayout(1, 4, 12, 0));
         counts.setOpaque(false);
-
-        totalLbl      = metricCard(counts, "Total",       "—", TEXT_PRI,  BG);
+        totalLbl      = metricCard(counts, "Total",       "—", TEXT_PRI,  SURFACE);
         solvedLbl     = metricCard(counts, "Solved ✓",    "—", GREEN,     GREEN_BG);
         invalidLbl    = metricCard(counts, "Invalid ✗",   "—", RED_CLR,   RED_BG);
         unsolvableLbl = metricCard(counts, "Unsolvable",  "—", AMBER,     AMBER_BG);
 
-        // Timing + speedup row
-        JPanel timing = new JPanel(new GridLayout(1, 4, 8, 0));
+        JPanel timing = new JPanel(new GridLayout(1, 4, 12, 0));
         timing.setOpaque(false);
+        seqTimeLbl   = metricCard(timing, "Sequential Ts", "—",  TEXT_SEC, SURFACE);
+        parTimeLbl   = metricCard(timing, "Parallel Tp",   "—",  GREEN,    GREEN_BG);
+        speedupLbl   = metricCard(timing, "Speedup (S)",   "—",  BLUE_CLR, BLUE_BG);
+        efficiencyLbl= metricCard(timing, "Efficiency (E)","—",  ACCENT,   ACCENT_LITE);
 
-        seqTimeLbl   = metricCard(timing, "Sequential Ts", "— ms",  TEXT_SEC, BG);
-        parTimeLbl   = metricCard(timing, "Parallel Tp",   "— ms",  TEAL,    TEAL_BG);
-        speedupLbl   = metricCard(timing, "Speedup S=Ts/Tp","—×",   ACCENT,  ACCENT_LITE);
-        efficiencyLbl= metricCard(timing, "Efficiency E=S/N","—%",  ACCENT,  ACCENT_LITE);
+        RoundedPanel bars = new RoundedPanel(16, SURFACE);
+        bars.setLayout(new GridLayout(2, 1, 0, 12));
+        bars.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-        // Progress bars
-        JPanel bars = new JPanel(new GridLayout(2, 1, 0, 4));
-        bars.setOpaque(false);
-        bars.setBorder(new EmptyBorder(0, 0, 0, 0));
+        speedupBar   = progressBar(BLUE_CLR);
+        efficiencyBar= progressBar(ACCENT);
 
-        speedupBar   = progressBar(ACCENT);
-        efficiencyBar= progressBar(TEAL);
+        bars.add(labeledBar("Speedup Rating", speedupBar));
+        bars.add(labeledBar("Core Efficiency", efficiencyBar));
 
-        JPanel sRow = labeledBar("Speedup", speedupBar);
-        JPanel eRow = labeledBar("Efficiency", efficiencyBar);
-        bars.add(sRow);
-        bars.add(eRow);
-
-        JPanel top = new JPanel(new GridLayout(3, 1, 0, 8));
+        JPanel top = new JPanel(new GridLayout(3, 1, 0, 12));
         top.setOpaque(false);
         top.add(counts);
         top.add(timing);
@@ -300,94 +315,96 @@ public final class SudokuUI {
     }
 
     private JPanel buildTablePanel() {
-        String[] cols = {"#", "Status", "Thread", "Time (ms)", "Givens"};
+        RoundedPanel wrapper = new RoundedPanel(16, SURFACE);
+        wrapper.setLayout(new BorderLayout());
+        wrapper.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        JLabel tableTitle = new JLabel("Recent Results");
+        tableTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        tableTitle.setForeground(TEXT_PRI);
+        tableTitle.setBorder(new EmptyBorder(0, 4, 12, 0));
+        wrapper.add(tableTitle, BorderLayout.NORTH);
+
+        String[] cols = {"Puzzle #", "Status", "Worker Thread", "Time (ms)", "Givens"};
         tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         resultsTable = new JTable(tableModel);
-        resultsTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        resultsTable.setRowHeight(22);
+        resultsTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        resultsTable.setRowHeight(28);
         resultsTable.setShowGrid(false);
         resultsTable.setIntercellSpacing(new Dimension(0, 0));
         resultsTable.setBackground(SURFACE);
         resultsTable.setSelectionBackground(ACCENT_LITE);
         resultsTable.setSelectionForeground(TEXT_PRI);
-        resultsTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        resultsTable.getTableHeader().setBackground(BG);
-        resultsTable.getTableHeader().setForeground(TEXT_SEC);
-        resultsTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+
+        JTableHeader header = resultsTable.getTableHeader();
+        header.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        header.setBackground(SURFACE);
+        header.setForeground(TEXT_SEC);
+        header.setBorder(new MatteBorder(0, 0, 1, 0, BORDER_CLR));
+        header.setPreferredSize(new Dimension(0, 32));
+
+        resultsTable.getColumnModel().getColumn(0).setPreferredWidth(60);
         resultsTable.getColumnModel().getColumn(1).setPreferredWidth(100);
         resultsTable.getColumnModel().getColumn(2).setPreferredWidth(140);
-        resultsTable.getColumnModel().getColumn(3).setPreferredWidth(90);
+        resultsTable.getColumnModel().getColumn(3).setPreferredWidth(80);
         resultsTable.getColumnModel().getColumn(4).setPreferredWidth(60);
 
-        // Color rows by status
         resultsTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(JTable t, Object v, boolean sel,
-                                                           boolean foc, int row, int col) {
+            public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
                 Component c = super.getTableCellRendererComponent(t, v, sel, foc, row, col);
+                setBorder(new EmptyBorder(0, 8, 0, 8));
                 if (!sel) {
                     String status = (String) tableModel.getValueAt(row, 1);
-                    if ("SOLVED".equals(status))         { c.setBackground(SURFACE); c.setForeground(TEXT_PRI); }
+                    if ("SOLVED".equals(status)) { c.setBackground(SURFACE); c.setForeground(TEXT_PRI); }
                     else if ("INVALID_PUZZLE".equals(status)) { c.setBackground(RED_BG); c.setForeground(RED_CLR); }
-                    else                                 { c.setBackground(AMBER_BG); c.setForeground(AMBER); }
+                    else { c.setBackground(AMBER_BG); c.setForeground(AMBER); }
                 }
                 return c;
             }
         });
 
         JScrollPane scroll = new JScrollPane(resultsTable);
-        scroll.setBorder(new LineBorder(BORDER_CLR));
-        scroll.setBackground(SURFACE);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(SURFACE);
 
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setOpaque(false);
-        JLabel tableTitle = new JLabel("Results  (most recent 500 rows shown)");
-        tableTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        tableTitle.setForeground(TEXT_PRI);
-        tableTitle.setBorder(new EmptyBorder(0, 0, 6, 0));
-        wrapper.add(tableTitle, BorderLayout.NORTH);
         wrapper.add(scroll, BorderLayout.CENTER);
         return wrapper;
     }
 
     // ── Log panel ─────────────────────────────────────────────────────────
-
     private JPanel buildLogPanel() {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(new Color(0x1C1B18));
-        p.setBorder(new EmptyBorder(0, 0, 0, 0));
-        p.setPreferredSize(new Dimension(0, 140));
+        p.setBackground(new Color(0x15202B)); // Deep dark background for console
+        p.setPreferredSize(new Dimension(0, 160));
+        p.setBorder(new MatteBorder(4, 0, 0, 0, ACCENT));
 
-        JLabel lbl = new JLabel(" Console log");
-        lbl.setFont(new Font("Segoe UI Mono", Font.PLAIN, 11));
-        lbl.setForeground(new Color(0x888780));
-        lbl.setBorder(new EmptyBorder(4, 8, 4, 0));
-        lbl.setBackground(new Color(0x1C1B18));
-        lbl.setOpaque(true);
+        JLabel lbl = new JLabel(" System Console");
+        lbl.setFont(new Font("Consolas", Font.BOLD, 12));
+        lbl.setForeground(new Color(0x8899A6));
+        lbl.setBorder(new EmptyBorder(8, 16, 4, 16));
         p.add(lbl, BorderLayout.NORTH);
 
         logArea = new JTextArea();
-        logArea.setFont(new Font("Segoe UI Mono", Font.PLAIN, 11));
-        logArea.setBackground(new Color(0x1C1B18));
-        logArea.setForeground(new Color(0xC0BDB6));
-        logArea.setCaretColor(new Color(0xC0BDB6));
+        logArea.setFont(new Font("Consolas", Font.PLAIN, 13));
+        logArea.setBackground(new Color(0x15202B));
+        logArea.setForeground(new Color(0xE1E8ED));
+        logArea.setCaretColor(Color.WHITE);
         logArea.setEditable(false);
-        logArea.setBorder(new EmptyBorder(0, 12, 8, 12));
+        logArea.setMargin(new Insets(4, 16, 16, 16));
 
         JScrollPane scroll = new JScrollPane(logArea);
         scroll.setBorder(null);
-        scroll.setBackground(new Color(0x1C1B18));
         p.add(scroll, BorderLayout.CENTER);
         return p;
     }
 
     // ── Solve logic ───────────────────────────────────────────────────────
-
     private void startSolve() {
         runButton.setEnabled(false);
-        runButton.setText("Running...");
+        runButton.setText("Processing...");
         tableModel.setRowCount(0);
         resetMetrics();
 
@@ -397,60 +414,51 @@ public final class SudokuUI {
 
         new Thread(() -> {
             try {
-                // Load puzzles
                 List<SudokuPuzzle> puzzles;
                 if (selectedFilePath != null) {
-                    log("Loading puzzles from file: " + selectedFilePath);
+                    log("> Loading puzzles from: " + selectedFilePath);
                     puzzles = PuzzleFileParser.parseFile(selectedFilePath);
                 } else {
-                    log("Generating " + count + " puzzles...");
+                    log("> Generating " + count + " puzzles...");
                     puzzles = PuzzleGenerator.generate(count);
                 }
-                log("Loaded " + puzzles.size() + " puzzles.");
+                log("✓ Loaded " + puzzles.size() + " puzzles.");
 
-                // Update preview with first puzzle
                 if (!puzzles.isEmpty()) SwingUtilities.invokeLater(() -> previewPanel.setPuzzle(puzzles.get(0)));
 
                 ParallelSolverOrchestrator orch = new ParallelSolverOrchestrator(threads);
 
-                // Sequential baseline
                 long seqMs = 0;
                 if (doSeq) {
-                    log("Running sequential baseline (single thread)...");
+                    log("> Running sequential baseline...");
                     long t = System.currentTimeMillis();
                     orch.solveSequential(puzzles);
                     seqMs = System.currentTimeMillis() - t;
-                    log("Sequential finished in " + seqMs + " ms.");
+                    log("✓ Sequential finished in " + seqMs + " ms.");
                 }
 
-                // Parallel run
-                log("Starting parallel solve on " + threads + " thread(s)...");
+                log("> Starting parallel execution (" + threads + " threads)...");
                 long parStart = System.currentTimeMillis();
                 List<SolveResult> results = orch.solve(puzzles);
                 long parMs = System.currentTimeMillis() - parStart;
-                log("Parallel finished in " + parMs + " ms.");
+                log("✓ Parallel finished in " + parMs + " ms.");
 
-                // Save output
                 ResultWriter.writeResults(results, "output", parMs, seqMs, threads);
-                log("Results written to ./output/");
 
-                // Update UI on EDT
-                final long finalSeqMs = seqMs;
-                final long finalParMs = parMs;
+                final long fSeq = seqMs, fPar = parMs;
                 SwingUtilities.invokeLater(() -> {
-                    updateMetrics(results, finalSeqMs, finalParMs, threads);
+                    updateMetrics(results, fSeq, fPar, threads);
                     populateTable(results);
                     runButton.setEnabled(true);
-                    runButton.setText("▶  Run Batch Solve");
-                    log("Done. " + results.size() + " puzzles processed.");
+                    runButton.setText("▶ Run Batch Solve");
+                    log("★ Done processing " + results.size() + " records.");
                 });
 
             } catch (Exception ex) {
-                log("ERROR: " + ex.getMessage());
+                log("! ERROR: " + ex.getMessage());
                 SwingUtilities.invokeLater(() -> {
                     runButton.setEnabled(true);
-                    runButton.setText("▶  Run Batch Solve");
-                    JOptionPane.showMessageDialog(frame, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    runButton.setText("▶ Run Batch Solve");
                 });
             }
         }, "ui-solve-thread").start();
@@ -466,7 +474,7 @@ public final class SudokuUI {
         invalidLbl.setText(String.valueOf(invalid));
         unsolvableLbl.setText(String.valueOf(unsolvable));
 
-        seqTimeLbl.setText(seqMs > 0 ? seqMs + " ms" : "skipped");
+        seqTimeLbl.setText(seqMs > 0 ? seqMs + " ms" : "Skipped");
         parTimeLbl.setText(parMs + " ms");
 
         if (seqMs > 0 && parMs > 0) {
@@ -481,7 +489,6 @@ public final class SudokuUI {
 
     private void populateTable(List<SolveResult> results) {
         tableModel.setRowCount(0);
-        // Show latest 500 to keep UI responsive
         int start = Math.max(0, results.size() - 500);
         List<SolveResult> sorted = new ArrayList<>(results.subList(start, results.size()));
         sorted.sort(Comparator.comparingInt(SolveResult::getPuzzleId));
@@ -490,11 +497,8 @@ public final class SudokuUI {
             if (r.getSolvedBoard() != null)
                 for (int[] row : r.getSolvedBoard()) for (int c : row) if (c != 0) givens++;
             tableModel.addRow(new Object[]{
-                r.getPuzzleId(),
-                r.getStatus().name(),
-                r.getWorkerThread(),
-                String.format("%.3f", r.getSolveTimeNanos() / 1_000_000.0),
-                givens > 0 ? givens : "—"
+                    r.getPuzzleId(), r.getStatus().name(), r.getWorkerThread(),
+                    String.format("%.3f", r.getSolveTimeNanos() / 1_000_000.0), givens > 0 ? givens : "—"
             });
         }
     }
@@ -508,14 +512,10 @@ public final class SudokuUI {
         if (efficiencyBar != null) efficiencyBar.setValue(0);
     }
 
-    // ── Preview ───────────────────────────────────────────────────────────
-
     private void refreshPreview() {
         List<SudokuPuzzle> sample = PuzzleGenerator.generate(1);
         if (!sample.isEmpty()) previewPanel.setPuzzle(sample.get(0));
     }
-
-    // ── File chooser ──────────────────────────────────────────────────────
 
     private void chooseFile() {
         JFileChooser fc = new JFileChooser();
@@ -525,12 +525,11 @@ public final class SudokuUI {
             File f = fc.getSelectedFile();
             selectedFilePath = f.getAbsolutePath();
             fileLabel.setText(f.getName());
-            log("File selected: " + selectedFilePath);
+            log("> File targeted: " + selectedFilePath);
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
-
+    // ── UI Design Helpers ─────────────────────────────────────────────────
     private void log(String msg) {
         SwingUtilities.invokeLater(() -> {
             logArea.append(msg + "\n");
@@ -538,65 +537,46 @@ public final class SudokuUI {
         });
     }
 
-    private JPanel card(String title) {
-        JPanel p = new JPanel();
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        p.setBackground(SURFACE);
-        p.setBorder(new CompoundBorder(
-                new LineBorder(BORDER_CLR, 1, true),
-                new EmptyBorder(12, 14, 12, 14)));
-
-        JLabel lbl = new JLabel(title);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lbl.setForeground(TEXT_PRI);
-        lbl.setBorder(new EmptyBorder(0, 0, 10, 0));
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        p.add(lbl);
-        return p;
-    }
-
     private JLabel label(String text) {
         JLabel l = new JLabel(text);
-        l.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        l.setFont(new Font("Segoe UI", Font.BOLD, 12));
         l.setForeground(TEXT_SEC);
-        l.setBorder(new EmptyBorder(6, 0, 2, 0));
+        l.setBorder(new EmptyBorder(0, 0, 4, 0));
         l.setAlignmentX(Component.LEFT_ALIGNMENT);
         return l;
     }
 
     private void styleSpinner(JSpinner s) {
-        s.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        s.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         s.setAlignmentX(Component.LEFT_ALIGNMENT);
-        s.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+        s.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        JComponent editor = s.getEditor();
+        if (editor instanceof JSpinner.DefaultEditor) {
+            ((JSpinner.DefaultEditor)editor).getTextField().setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+        }
+        s.setBorder(new LineBorder(BORDER_CLR, 1, true));
     }
 
-    private JButton accentButton(String text) {
-        JButton b = new JButton(text);
-        b.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+    private void styleSecondaryButton(JButton b) {
+        b.setFont(new Font("Segoe UI", Font.BOLD, 12));
         b.setForeground(ACCENT);
         b.setBackground(ACCENT_LITE);
-        b.setBorder(new CompoundBorder(new LineBorder(ACCENT, 1, true), new EmptyBorder(4, 10, 4, 10)));
+        b.setBorder(new EmptyBorder(6, 12, 6, 12));
         b.setFocusPainted(false);
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return b;
     }
 
-    /**
-     * Creates a metric card and adds it to `parent`, returning the value label.
-     */
     private JLabel metricCard(JPanel parent, String title, String initial, Color fg, Color bg) {
-        JPanel card = new JPanel(new GridLayout(2, 1, 0, 2));
-        card.setBackground(bg);
-        card.setBorder(new CompoundBorder(
-                new LineBorder(BORDER_CLR, 1, true),
-                new EmptyBorder(10, 12, 10, 12)));
+        RoundedPanel card = new RoundedPanel(12, bg);
+        card.setLayout(new GridLayout(2, 1, 0, 4));
+        card.setBorder(new EmptyBorder(12, 16, 12, 16));
 
         JLabel titleLbl = new JLabel(title);
-        titleLbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        titleLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
         titleLbl.setForeground(TEXT_SEC);
 
         JLabel valueLbl = new JLabel(initial);
-        valueLbl.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        valueLbl.setFont(new Font("Segoe UI", Font.BOLD, 22));
         valueLbl.setForeground(fg);
 
         card.add(titleLbl);
@@ -610,19 +590,45 @@ public final class SudokuUI {
         bar.setForeground(color);
         bar.setBackground(BORDER_CLR);
         bar.setBorderPainted(false);
-        bar.setPreferredSize(new Dimension(0, 8));
+        bar.setPreferredSize(new Dimension(0, 12));
         return bar;
     }
 
     private JPanel labeledBar(String label, JProgressBar bar) {
-        JPanel row = new JPanel(new BorderLayout(8, 0));
+        JPanel row = new JPanel(new BorderLayout(12, 0));
         row.setOpaque(false);
+
         JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lbl.setForeground(TEXT_SEC);
-        lbl.setPreferredSize(new Dimension(70, 0));
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lbl.setForeground(TEXT_PRI);
+        lbl.setPreferredSize(new Dimension(100, 0));
+
         row.add(lbl, BorderLayout.WEST);
         row.add(bar, BorderLayout.CENTER);
         return row;
+    }
+
+    /**
+     * Helper panel that draws an anti-aliased rounded rectangle background.
+     */
+    static class RoundedPanel extends JPanel {
+        private final int radius;
+        private final Color bgColor;
+
+        public RoundedPanel(int radius, Color bgColor) {
+            this.radius = radius;
+            this.bgColor = bgColor;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(bgColor);
+            g2.fill(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), radius, radius));
+            g2.dispose();
+            super.paintComponent(g);
+        }
     }
 }
