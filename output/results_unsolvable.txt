@@ -1,0 +1,1 @@
+# Valid puzzles for which no solution exists

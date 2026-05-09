@@ -1,0 +1,64 @@
+======================================================
+  BATCH SUDOKU VALIDATOR & SOLVER
+  PLT-Parallel Bridge Matrix — Java Implementation
+======================================================
+
+REQUIREMENTS
+  Java 17 or later.
+  Download free from: https://adoptium.net
+
+------------------------------------------------------
+HOW TO RUN — GRAPHICAL UI (recommended)
+------------------------------------------------------
+
+  Windows:   Double-click run.bat
+             OR: java -jar sudoku-solver.jar
+
+  Mac/Linux: ./run.sh
+             OR: java -jar sudoku-solver.jar
+
+  The UI will open. Configure options and click
+  "Run Batch Solve".
+
+------------------------------------------------------
+HOW TO RUN — COMMAND LINE (headless, no GUI)
+------------------------------------------------------
+
+  Windows:   java -jar sudoku-solver.jar --headless
+  Mac/Linux: ./run-headless.sh
+
+  Options:
+    --headless          Skip GUI, print to console
+    --count  <n>        Number of puzzles to generate (default: 10000)
+    --threads <n>       Worker thread count (default: CPU cores)
+    --file   <path>     Load puzzles from file instead of generating
+    --output <dir>      Output directory (default: ./output)
+    --no-seq            Skip sequential baseline measurement
+
+  Examples:
+    java -jar sudoku-solver.jar --headless --count 5000 --threads 4
+    java -jar sudoku-solver.jar --headless --file mypuzzles.txt
+
+------------------------------------------------------
+PUZZLE FILE FORMAT
+------------------------------------------------------
+
+  One-line format (81 chars per line, 0 or . = empty):
+    003020600900305001001806400008102900...
+
+  Grid format (9 lines per puzzle):
+    003020600
+    900305001
+    001806400
+    ...
+
+------------------------------------------------------
+OUTPUT FILES (in ./output/ folder)
+------------------------------------------------------
+
+  results_solved.txt      — id + 81-char solution per puzzle
+  results_invalid.txt     — ids of illegal initial states
+  results_unsolvable.txt  — ids with no solution
+  benchmark_report.txt    — per-puzzle timing + speedup table
+
+======================================================
